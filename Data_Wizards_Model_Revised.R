@@ -55,12 +55,12 @@ test <- read.csv("test.csv")
 str(test)
 
 #Include price column to test
-test$log_price<-0
+test$log_price <- 0
 str(test)
 
 #Adding a Tag to each data set
-train$tag<-"Train"
-test$tag<-"Test"
+train$tag <- "Train"
+test$tag <- "Test"
 
 #Validate new column named "Tag" in the 2 datasets
 str(train)
@@ -76,7 +76,7 @@ str(AD)
 
 
 ##############################
-#Start Data Exploration
+#Data Exploration
 ##############################
 
 #Identify missing Values in all_data
