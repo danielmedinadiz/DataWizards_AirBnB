@@ -23,7 +23,7 @@ library(DMwR)
 library(tm)
 library(tidytext)
 library(tidyr)
-library(data.table)s
+library(data.table)
 
 #This only works in RStudio
 wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
@@ -61,8 +61,8 @@ df <- train
 # Lots of boiler plate here
 # Idea is to sum up the afinn sentiment of each word in a description
 description.corpus <- SimpleCorpus(VectorSource(df$description), control=list(language="en"))
-#description.dtm <- DocumentTermMatrix(description.corpus, control=list(removePunctuation=TRUE, stopwords=TRUE))
-description.dtm <- DocumentTermMatrix(description.corpus, control=list(weighting=function(x) weightTfIdf(x, normalize=TRUE), stopwords=TRUE))
+description.dtm <- DocumentTermMatrix(description.corpus, control=list(removePunctuation=TRUE, stopwords=TRUE))
+#description.dtm <- DocumentTermMatrix(description.corpus, control=list(weighting=function(x) weightTfIdf(x, normalize=TRUE), stopwords=TRUE))
 description.tidy <- tidy(description.dtm)
 description.tidy$word <- description.tidy$term
 
@@ -70,10 +70,13 @@ description.tidy$word <- description.tidy$term
 # afinn analysis
 ####################
 description.sentiment <- as.data.table(merge(description.tidy, get_sentiments("afinn"), by="word"))
-description.sentiment$sentiment <- (1 / description.sentiment$count) * description.sentiment$score
+description.sentiment$sentiment <- description.sentiment$count * description.sentiment$score
+#description.sentiment$sentiment <- (1 / description.sentiment$count) * description.sentiment$score
 #description.sentiment.scores <- description.sentiment[order(document), list(score=sum(sentiment, na.rm=TRUE)), by=document]
 #description.sentiment.scores <- description.sentiment[order(document), list(score=sum(score, na.rm=TRUE)), by=document]
-description.sentiment.scores <- description.sentiment[order(document), list(score=median(sentiment, na.rm=TRUE)), by=document]
+description.sentiment.scores <- description.sentiment[order(document), list(sum_sentiments=sum(sentiment, na.rm=TRUE), total_count=sum(count, na.rm=TRUE)), by=document]
+#description.sentiment.scores$score <- description.sentiment.scores$sum_sentiments/description.sentiment.scores$total_count
+description.sentiment.scores$score <- description.sentiment.scores$total_count
 
 ####################
 # bing analysis
@@ -224,6 +227,7 @@ df$log_price_reversed <- df$log_price_norm * log.price.sd + log.price.mean
 
 # Linear model
 cols <- c("number_of_reviews", "review_scores_rating", "beds", "log_price")
+cols <- c("accommodates", "log_price")
 cols <- c("description_sentiment", "log_price")
 fit <- lm(log_price ~ ., data=df[cols])
 summary(fit) 
