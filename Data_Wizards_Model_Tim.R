@@ -37,39 +37,31 @@ source("Data_Wizards_Functions.R")
 ############################################################
 # Import data
 ############################################################
-train.all <- read.csv("train.csv")[1:5000,]
-test <- read.csv("test.csv")[1:5000,]
+train.all <- read.csv("train.csv")
+test <- read.csv("test.csv")
 
 # Add log_price column to test
 test$log_price <- -1
 
 # Reorder properly
 test <- test[, colnames(train.all)]
+test$tag <- "test"
 
-# Split train.all into train and validation
-split.results <- split.train.validation(train.all, perc.validation=0.3, seed=42)
-train <- split.results$train
-validation <- split.results$validation
+# Tag rows train.all as train or validation
+train.all <- tag.train.validation(train.all, perc.validation=0.3, seed=42)
+
+# All data
+all.data <- rbind(train.all, test)
 
 
 
 ############################################################
 # Data cleaning
 ############################################################
-train.clean <- clean.data(train)
-validation.clean <- clean.data(validation)
-test.clean <- clean.data(test)
-
-# Set levels - TODO
-for (c in colnames(train.clean)) {
-  if (is.factor(train.clean[, c])) {
-    train.levels <- levels(train.clean[, c])
-    validation.levels <- levels(validation.clean[, c])
-    test.levels <- levels(test.clean[, c])
-    levels(validation.clean[, c])[setdiff(validation.levels, train.levels)] <- NA
-    levels(test.clean[, c])[setdiff(test.levels, train.levels)]  <- NA
-  }
-}
+all.data.clean <- clean.data(all.data)
+train.clean <- all.data.clean[which(all.data.clean$tag == "train"), ]
+validation.clean <- all.data.clean[which(all.data.clean$tag == "validation"), ]
+test.clean <- all.data.clean[which(all.data.clean$tag == "test"), ]
 
 
 
@@ -78,9 +70,9 @@ for (c in colnames(train.clean)) {
 ############################################################
 
 # Linear model
-#lm.cols <- setdiff(colnames(df), c("id", "description_scaled_sentiment", "pc3", "pc4"))
-#fit <- lm(log_price ~ ., data=df[, lm.cols])
-fit <- lm(log_price ~ ., data=train.clean)
+lm.cols <- setdiff(colnames(train.clean), c("id", "description_scaled_sentiment", "pc3", "pc4", "tag"))
+fit <- lm(log_price ~ ., data=train.clean[, lm.cols])
+#fit <- lm(log_price ~ ., data=train.clean)
 summary(fit)
 
 # Diagnostic plots 

@@ -125,8 +125,11 @@ clean.data <- function(df) {
   # This takes a while so be patient (20 minutes or so)
   # k equal to sqrt of the number of instances is a good rule of thumb
   # When imputing, take out log price and id and derived columns
-  imputation.columns <- setdiff(colnames(df), c("id", "log_price", "description_sentiment", "description_word_count", "description_scaled_sentiment"))
-  df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median")
+  imputation.columns <- setdiff(colnames(df), c("tag", "id", "log_price", "description_sentiment", "description_word_count", "description_scaled_sentiment"))
+  
+  # Only use a subset as well to impute to save time
+  df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median", distData=df[sample(nrow(df), 3333), imputation.columns])
+  #df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median", distData=df[sample(nrow(df), floor(nrow(df) * 0.1)), imputation.columns])
   
   # Make sure the missing values are taken care of
   sapply(df, function(x) sum(is.na(x)))
@@ -188,27 +191,51 @@ clean.data <- function(df) {
   return(df)
 }
 
-split.train.validation <- function(df, perc.validation, seed) {
+tag.train.validation <- function(df, perc.validation, seed) {
   
-  #Determine the size of the training and validation set
+  # Determine the size of the training and validation set
   all.size <- nrow(df)
   validation.size <- floor(all.size * perc.validation)
   train.size <- all.size - validation.size
   
-  #Randomly sample training and validation set
+  # Randomly sample training and validation set
   all.rows <- 1:all.size
-  set.seed(seed) #Set the seed for consist results
+  set.seed(seed) #Set the seed for consistent results
   validation.rows <- sample.int(all.size, validation.size, replace=FALSE)
   train.rows <- setdiff(all.rows, validation.rows)
   
-  #Throw an error if the length of the validation set + length of the train set !=  length of the df
+  # Throw an error if the length of the validation set + length of the train set !=  length of the df
   stopifnot(length(validation.rows) + length(train.rows) == length(all.rows))
   
-  #Spit the data into train and validation
+  # Tag the data into train and validation
+  df$tag <- "train"
+  df$tag[validation.rows] <- "validation"
+  
+  # Return
+  return(df)
+}
+
+split.train.validation <- function(df, perc.validation, seed) {
+  
+  # Determine the size of the training and validation set
+  all.size <- nrow(df)
+  validation.size <- floor(all.size * perc.validation)
+  train.size <- all.size - validation.size
+  
+  # Randomly sample training and validation set
+  all.rows <- 1:all.size
+  set.seed(seed) #Set the seed for consistent results
+  validation.rows <- sample.int(all.size, validation.size, replace=FALSE)
+  train.rows <- setdiff(all.rows, validation.rows)
+  
+  # Throw an error if the length of the validation set + length of the train set !=  length of the df
+  stopifnot(length(validation.rows) + length(train.rows) == length(all.rows))
+  
+  # Spit the data into train and validation
   validation <- df[validation.rows, ]
   train <- df[train.rows, ]
   
-  #Return
+  # Return
   return(list("validation" = validation, "train" = train))
 }
 
