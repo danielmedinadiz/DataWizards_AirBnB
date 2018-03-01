@@ -1,0 +1,17 @@
+Get the GeoCode:
+
+https://api.datausa.io/attrs/search/?q=14870&kind=geo
+
+Details (most likely county info):
+
+https://api.datausa.io/api/?show=geo&year=2015&required=age,pop,non_us_citizens,mean_commute_minutes,income,owner_occupied_housing_units,median_property_value,pop_rank,income_rank,us_citizens,non_eng_speakers_pct&sumlevel=all&geo=31000US18500
+
+
+a,b
+1,3
+2,11
+3,23
+4,56
+10,500
+
+

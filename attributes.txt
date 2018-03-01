@@ -1,0 +1,1 @@
+age,pop,non_us_citizens,mean_commute_minutes,income,owner_occupied_housing_units,median_property_value,us_citizens,non_eng_speakers_pct
