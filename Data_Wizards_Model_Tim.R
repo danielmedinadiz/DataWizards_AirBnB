@@ -275,6 +275,12 @@ all.data.clean$non_eng_speakers_pct <- NA
 
 # Set the data
 cols.to.update <- c("age", "pop", "non_us_citizens", "mean_commute_minutes", "income", "owner_occupied_housing_units", "median_property_value", "pop_rank", "income_rank", "us_citizens", "non_eng_speakers_pct")
+
+# Just in case we are rerunning the below loop after an error
+# Don't want to pull in data for all US for blank zips!
+all.data.clean[which(all.data.clean$zipcode == ""), cols.to.update] <- rep(NA, 11)
+
+# Queries
 for (r in 1:nrow(all.data.clean)) {
   if (is.na(all.data.clean$age[r])) {
     print(r/nrow(all.data.clean))
@@ -282,10 +288,16 @@ for (r in 1:nrow(all.data.clean)) {
     data <- get.location.data(zipcode)
     all.data.clean[r, cols.to.update] <- data
   }
-  if (r %% 1000 == 0) {
+  if (r %% 10000 == 0) {
     write.csv(all.data.clean, "clean_data_2.csv", row.names=FALSE)
   }
 }
+
+# Write non-normalized
+write.csv(all.data.clean, "clean_data_2.csv", row.names=FALSE)
+all.data.clean <- read.csv("clean_data_2.csv")
+
+# Write normalized
 all.data.clean <- normalize.columns(all.data.clean, cols.to.update)
 write.csv(all.data.clean, "clean_data_3.csv", row.names=FALSE)
 
