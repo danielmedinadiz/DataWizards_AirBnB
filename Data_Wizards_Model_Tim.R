@@ -16,6 +16,7 @@
 #install.packages("tidytext")
 #install.packages("tidyr")
 #install.packages("data.table")
+#install.packages("ranger")
 
 # Libraries
 library(rstudioapi)
@@ -24,6 +25,7 @@ library(tm)
 library(tidytext)
 library(tidyr)
 library(data.table)
+library(ranger)
 
 #This only works in RStudio
 wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
@@ -59,6 +61,7 @@ all.data <- rbind(train.all, test)
 # Data cleaning
 ############################################################
 df <- all.data
+
 
 ##############################
 # Date normalization
@@ -189,6 +192,7 @@ imputation.columns <- setdiff(colnames(df), c("tag", "id", "log_price", "descrip
 # Only use a subset as well to impute to save time
 df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median", distData=df[sample(nrow(df), 1000), imputation.columns])
 #df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median", distData=df[sample(nrow(df), floor(nrow(df) * 0.1)), imputation.columns])
+#df[, imputation.columns] <- knnImputation(df[, imputation.columns], k=sqrt(nrow(df)), meth="median")
 
 # Make sure the missing values are taken care of
 sapply(df, function(x) sum(is.na(x)))
@@ -244,15 +248,15 @@ df$pc2 <- prc$x[, "PC2"]
 df$pc3 <- prc$x[, "PC3"]
 df$pc4 <- prc$x[, "PC4"]
 
-# Now remove the correlated columns
-df <- df[, setdiff(colnames(df), prc.columns)]
+# Save cleaned data to file to save computation time
+write.csv(df, "clean_data.csv", row.names=FALSE)
 
 
 
 ############################################################
 # Train vs validation vs test
 ############################################################
-all.data.clean <- df
+all.data.clean <- read.csv("clean_data.csv")
 train.clean <- all.data.clean[which(all.data.clean$tag == "train"), ]
 validation.clean <- all.data.clean[which(all.data.clean$tag == "validation"), ]
 test.clean <- all.data.clean[which(all.data.clean$tag == "test"), ]
@@ -263,8 +267,16 @@ test.clean <- all.data.clean[which(all.data.clean$tag == "test"), ]
 # Model
 ############################################################
 
+# Add in a random number column for variable importance
+train.clean$rand <- sample(100, size=nrow(train.clean), replace=TRUE)/100
+train.clean$rand1 <- sample(100, size=nrow(train.clean), replace=TRUE)/100
+train.clean$rand2 <- sample(100, size=nrow(train.clean), replace=TRUE)/100
+
+
+##############################
 # Linear model
-lm.cols <- setdiff(colnames(train.clean), c("id", "description_scaled_sentiment", "pc3", "pc4", "tag", "neighbourhood", "zipcode"))
+##############################
+lm.cols <- setdiff(colnames(train.clean), c("id", "rand", "rand1", "rand2", "description_scaled_sentiment", "pc3", "pc4", "tag", "neighbourhood", "zipcode", "accommodates", "bathrooms", "bedrooms", "beds"))
 fit <- lm(log_price ~ ., data=train.clean[, lm.cols])
 summary(fit)
 
@@ -272,11 +284,27 @@ summary(fit)
 layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
 plot(fit)
 
-
-
-############################################################
-# Prediction
-############################################################
+# Predictions
 p <- predict.lm(fit, validation.clean)
 validation.clean$log_price_predicted <- p
-rsme(validation.clean$log_price, p)
+rsme(validation.clean$log_price, validation.clean$log_price_predicted)
+
+
+##############################
+# Random forest
+##############################
+n.trees <- 500
+
+# First do all and see which vars are important
+fit.all <- ranger(log_price ~ ., data=train.clean, num.trees=n.trees, importance="impurity")
+var.imp <- sort(fit.all$variable.importance)
+View(var.imp)
+
+# In order of least to most important
+rf.cols <- c("log_price", "rand", "rand1", "rand2", "description_scaled_sentiment", "number_of_reviews", "review_stale", "first_review", "description_word_count", "last_review", "host_since", "city", "neighbourhood", "pc3", "pc2", "pc4", "zipcode", "pc1", "room_type")
+fit <- ranger(log_price ~ ., data=train.clean[, rf.cols], num.trees=n.trees, importance="impurity")
+
+# Predictions
+p <- predict(fit, validation.clean)
+validation.clean$log_price_predicted <- p$predictions
+rsme(validation.clean$log_price, validation.clean$log_price_predicted)
