@@ -17,6 +17,7 @@
 #install.packages("tidyr")
 #install.packages("data.table")
 #install.packages("ranger")
+#install.packages("jsonlite")
 
 # Libraries
 library(rstudioapi)
@@ -26,6 +27,7 @@ library(tidytext)
 library(tidyr)
 library(data.table)
 library(ranger)
+library(jsonlite)
 
 #This only works in RStudio
 wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
@@ -254,9 +256,45 @@ write.csv(df, "clean_data.csv", row.names=FALSE)
 
 
 ############################################################
-# Train vs validation vs test
+# Add zip code data
 ############################################################
 all.data.clean <- read.csv("clean_data.csv")
+
+# Add new factors
+all.data.clean$age <- NA
+all.data.clean$pop <- NA
+all.data.clean$non_us_citizens <- NA
+all.data.clean$mean_commute_minutes <- NA
+all.data.clean$income <- NA
+all.data.clean$owner_occupied_housing_units <- NA
+all.data.clean$median_property_value <- NA
+all.data.clean$pop_rank <- NA
+all.data.clean$income_rank <- NA
+all.data.clean$us_citizens <- NA
+all.data.clean$non_eng_speakers_pct <- NA
+
+# Set the data
+cols.to.update <- c("age", "pop", "non_us_citizens", "mean_commute_minutes", "income", "owner_occupied_housing_units", "median_property_value", "pop_rank", "income_rank", "us_citizens", "non_eng_speakers_pct")
+for (r in 1:nrow(all.data.clean)) {
+  if (is.na(all.data.clean$age[r])) {
+    print(r/nrow(all.data.clean))
+    zipcode <- all.data.clean$zipcode[r]
+    data <- get.location.data(zipcode)
+    all.data.clean[r, cols.to.update] <- data
+  }
+  if (r %% 1000 == 0) {
+    write.csv(all.data.clean, "clean_data_2.csv", row.names=FALSE)
+  }
+}
+all.data.clean <- normalize.columns(all.data.clean, cols.to.update)
+write.csv(all.data.clean, "clean_data_3.csv", row.names=FALSE)
+
+
+
+############################################################
+# Train vs validation vs test
+############################################################
+all.data.clean <- read.csv("clean_data_3.csv")
 train.clean <- all.data.clean[which(all.data.clean$tag == "train"), ]
 validation.clean <- all.data.clean[which(all.data.clean$tag == "validation"), ]
 test.clean <- all.data.clean[which(all.data.clean$tag == "test"), ]

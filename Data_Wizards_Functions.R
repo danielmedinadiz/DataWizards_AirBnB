@@ -260,3 +260,24 @@ normalize.columns <- function(df, columns) {
   }
   return(df)
 }
+
+get.location.data <- function(zipcode) {
+  result = tryCatch({
+    zipJson <- fromJSON(paste0("https://api.datausa.io/attrs/search/?q=", zipcode, "&kind=geo"))
+    if (length(zipJson$data) > 0) {
+      geo.id <- zipJson$data[1, 1]
+      query <- "https://api.datausa.io/api/?show=geo&year=2015&required=age,pop,non_us_citizens,mean_commute_minutes,income,owner_occupied_housing_units,median_property_value,pop_rank,income_rank,us_citizens,non_eng_speakers_pct&sumlevel=all&geo="
+      dataJson <- fromJSON(paste0(query, geo.id))
+      return(dataJson$data[3:13])
+    } else {
+      return(rep(NA, 11))
+    }
+  }, warning = function(w) {
+    return(rep(NA, 11))
+  }, error = function(e) {
+    return(rep(NA, 11))
+  }, finally = {
+    # Nothing
+  })
+  return(result)
+}
