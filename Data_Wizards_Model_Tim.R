@@ -301,10 +301,19 @@ var.imp <- sort(fit.all$variable.importance)
 View(var.imp)
 
 # In order of least to most important
-rf.cols <- c("log_price", "rand", "rand1", "rand2", "description_scaled_sentiment", "number_of_reviews", "review_stale", "first_review", "description_word_count", "last_review", "host_since", "city", "neighbourhood", "pc3", "pc2", "pc4", "zipcode", "pc1", "room_type")
+rf.cols <- c("log_price", "description_scaled_sentiment", "number_of_reviews", "review_stale", "first_review", "description_word_count", "last_review", "host_since", "city", "neighbourhood", "pc3", "pc2", "pc4", "zipcode", "pc1", "room_type")
 fit <- ranger(log_price ~ ., data=train.clean[, rf.cols], num.trees=n.trees, importance="impurity")
 
 # Predictions
 p <- predict(fit, validation.clean)
 validation.clean$log_price_predicted <- p$predictions
 rsme(validation.clean$log_price, validation.clean$log_price_predicted)
+
+# Test
+p <- predict(fit, test.clean)
+test.clean$log_price_predicted <- p$predictions
+
+# Submission
+submission <- data.frame(id=test.clean$id, log_price=test.clean$log_price_predicted)
+write.csv(submission, "submission.csv", row.names = FALSE)
+
