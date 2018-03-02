@@ -73,7 +73,7 @@ get.location.data <- function(zipcode) {
     return(rep(NA, 11))
   }
   if (grepl("-", zipcode)) {
-    zipcode <- strsplit(zipcode, "-")[[1]][1]
+    zipcode <- strsplit(as.character(zipcode), "-")[[1]][1]
   }
   result = tryCatch({
     zipJson <- fromJSON(paste0("https://api.datausa.io/attrs/search/?q=", zipcode, "&kind=geo"))

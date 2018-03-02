@@ -260,7 +260,19 @@ write.csv(df, "clean_data.csv", row.names=FALSE)
 ############################################################
 all.data.clean <- read.csv("clean_data.csv")
 
+
+##############################
+# Lat lng in case zip is missing
+##############################
+# This would be the query, but I would need to register
+# http://maps.googleapis.com/maps/api/geocode/json?latlng=40.6965236299707,-73.9916168462426&sensor=true
+#latitudes <- all.data$latitude
+#longitude <- all.data$longitude
+
+
+##############################
 # Add new factors
+##############################
 all.data.clean$age <- NA
 all.data.clean$pop <- NA
 all.data.clean$non_us_citizens <- NA
